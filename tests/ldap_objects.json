@@ -1,0 +1,35 @@
+[
+    [
+        "cn=m_muster01,ou=person,dc=identity,dc=uni-muenster,dc=de",
+        {
+            "cn": ["m_muster01"],
+            "sn": ["Muster"],
+            "givenName": ["Max"],
+            "mail": ["max.muster@uni-muenster.de"],
+            "userPassword": ["1234"],
+            "someAttr": ["testValue1"]
+        }
+    ],
+    [
+        "cn=a_weiss01,ou=person,dc=identity,dc=uni-muenster,dc=de",
+        {
+            "cn": ["a_weiss01"],
+            "sn": ["Weiß"],
+            "givenName": ["Anna"],
+            "mail": ["anna.weiss@uni-muenster.de"],
+            "userPassword": ["5678"],
+            "someAttr": ["testValue2"]
+        }
+    ],
+    [
+        "cn=e_beisp01,ou=person,dc=identity,dc=uni-muenster,dc=de",
+        {
+            "cn": ["e_beisp01"],
+            "sn": ["Beispiel"],
+            "givenName": ["Eva"],
+            "mail": ["eva.beispiel@uni-muenster.de"],
+            "userPassword": ["abcd"],
+            "someAttr": ["testValue3"]
+        }
+    ]
+]

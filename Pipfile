@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+python-ldap = ">=3.4.3"
+requests = "*"
+progress = "*"
+elabftw-usersync = {editable = true, path = "."}
+python-dotenv = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-mock = "*"
+python-ldap-faker = "*"
+pytest-cov = "*"
+requests_mock = "*"
+hypothesis = "*"
+isort = "*"
+black = "*"
+
+[requires]
+python_version = "3.10"
