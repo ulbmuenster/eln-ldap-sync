@@ -7,6 +7,7 @@ import ldap
 from ldap_faker import LDAPFakerMixin
 
 from elabftw_usersync.idm_ldap import LDAP
+from elabftw_usersync.logger_config import logger
 
 
 class LDAPTest(LDAPFakerMixin, unittest.TestCase):
@@ -83,7 +84,7 @@ class LDAPTest(LDAPFakerMixin, unittest.TestCase):
             "(cn=a_weiss01)",
             ["cn", "sn", "givenName", "mail"],
         )
-        print(results)
+        logger.info(results)
 
         self.assertEqual(len(results), 1)
         self.assertEqual(

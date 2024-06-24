@@ -6,11 +6,11 @@ from progress.bar import Bar
 from elabftw_usersync.helper import (
     UserSyncException,
     diff_users,
-    error_print,
     parse_leader_mail_from_ldap,
     parse_users_from_ldap,
 )
 from elabftw_usersync.idm_ldap import LDAP
+from elabftw_usersync.logger_config import logger
 
 
 def process_ldap(
@@ -31,19 +31,19 @@ def process_ldap(
     :param ldap_search_user_attrs: The LDAP attributes, which should be pulled from the user
     :return: list of dict of users and the team leader mail
     """
-    print("Pull team from LDAP...")
+    logger.info("Pull team from LDAP...")
     users_results = ld.search(
         ldap_base_dn,
         ldap_search_group,
         attrslist=ldap_search_user_attrs,
     )
-    print("Parse users from LDAP...")
+    logger.info("Parse users from LDAP...")
     parsed_ldap_users = parse_users_from_ldap(users_results)
 
-    print("Search for team leader email...")
+    logger.info("Search for team leader email...")
     team_leader_mail = parse_leader_mail_from_ldap(parsed_ldap_users, leader_acc)
 
-    print("Done processing LDAP search results.")
+    logger.info("Done processing LDAP search results.")
 
     return parsed_ldap_users, team_leader_mail
 
@@ -64,23 +64,23 @@ def process_elabftw(
     :return: None
     """
     if not leader_mail:
-        error_print(
+        logger.critical(
             f"Skipping the team {team_name} because no leader mail adress could be obtained from LDAP."
         )
         return False
 
     # --------------------------------------------------
-    print("Get Team ID...")
+    logger.info("Get Team ID...")
     team_id = elabftw.get_team_id(team_name)
 
     if not team_id:
-        error_print(
+        logger.critical(
             f"Skipping the team {team_name} because it could not be found in this Instance of ElabFTW. Please make sure the team exists."
         )
         return False
 
     # --------------------------------------------------
-    print("Get Team Leader ID...")
+    logger.info("Get Team Leader ID...")
     # check if the leader is already in ElabFTW
     team_leader = None
     for u in parsed_ldap_users:
@@ -89,7 +89,7 @@ def process_elabftw(
             break
 
     if not team_leader:
-        error_print(
+        logger.critical(
             f"Skipping the team {team_name} because the leader {leader_mail} could not be found in LDAP."
         )
         return False
@@ -127,7 +127,7 @@ def process_elabftw(
             try:
                 elabftw.add_user_to_team(user_id, team_id)
             except UserSyncException as e:
-                print(e.msg)
+                logger.info(e.msg)
                 exit(1)
             else:
                 # unarchive the user if he/she was archived before
@@ -137,16 +137,16 @@ def process_elabftw(
 
     # --------------------------------------------------
     # setting the team leader
-    print(
+    logger.info(
         f"Making sure that {team_leader['firstname']} {team_leader['lastname']} is the sole team leadder for team {team_name}..."
     )
     try:
         elabftw.ensure_single_teamowner(team_leader_id, team_id)
     except UserSyncException as e:
-        print(e.msg)
+        logger.info(e.msg)
         exit(1)
     else:
-        print("Teamowner set successfully.")
+        logger.info("Teamowner set successfully.")
         return True
 
 
@@ -159,14 +159,16 @@ def process_removed_users(elabftw, team, seen_uniids_from_ldap: list):
     :param seen_mail_address_from_ldap:
     :return: None
     """
-    print("Pull current users for the team from ElabFTW to calculate changes...")
+    logger.info("Pull current users for the team from ElabFTW to calculate changes...")
     team_users = elabftw.get_users_for_team(elabftw.get_team_id(team))
     # team_users is a list of dicts
     team_users_orgids = [x["orgid"] for x in team_users]
     add, list_of_orgids_to_remove = diff_users(seen_uniids_from_ldap, team_users_orgids)
 
     if len(list_of_orgids_to_remove) > 0:
-        print(f"Removing {len(list_of_orgids_to_remove)} users(s) from team {team}...")
+        logger.info(
+            f"Removing {len(list_of_orgids_to_remove)} users(s) from team {team}..."
+        )
         elabftw.remove_users_from_team(list_of_orgids_to_remove, team)
     else:
-        print("No changes in users detected.")
+        logger.info("No changes in users detected.")

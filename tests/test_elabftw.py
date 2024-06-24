@@ -7,7 +7,7 @@ import pytest
 import requests
 
 from elabftw_usersync.elabftw import ElabFTW
-from elabftw_usersync.helper import UserSyncException, error_print, init_elabftw
+from elabftw_usersync.helper import UserSyncException, init_elabftw
 
 
 def test_check_connection_returns_true_if_endpoint_responds_ok(requests_mock):
