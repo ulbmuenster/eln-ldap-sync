@@ -34,7 +34,7 @@ apk add build-base openldap-dev python3-dev
 
 ## Adapt the script to use any Identity Provider other than LDAP
 
-In the `for` loop that goers over each group read from the CSV whitelist in the `main.py/start_sync()` function LDAP gets called for all members of the group:
+In the `for` loop that goes over each group read from the CSV whitelist in the `main.py/start_sync()` function, LDAP is queried to return all members of the group:
 
 ```python
 ldap_users, leader_mail = process_ldap(
