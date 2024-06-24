@@ -8,32 +8,24 @@ Build Prerequisites for LDAP: https://www.python-ldap.org/en/python-ldap-3.3.0/i
 apk add build-base openldap-dev python3-dev
 ```
 
-### Development: Set Env-Variables in `.env`
+### Setup for Development
 
 1. Get API Key in elabFTW: https://your-elab-instance.com/ucp.php?tab=4
-2. Set up a virtual Environment and install dependencies and run the script
+2. Copy the `.env.example` file to `.env` and fill in your data
+3. Set up a virtual Environment and install dependencies with pipen:
     ```bash
-    python -m venv venv
-    . ./venv/bin/activate
-    pip install -r requirements.txt
-    python3 elabftw_usersync/main.py
-    ```
-
-    Alternatively:
-
-    ```bash
-    pipenv install
+    pipenv install --dev
     pipenv shell
-    elabftw
     ```
+4. run the script: `elabftw`
    
 ## Usage
 
 ### Provide a CSV List of groups
 
-see `group_whitelist.csv` for an example
+See `group_whitelist.csv` for an example
 
-### Adapt the script to use any Identity Provider other than LDAP
+## Adapt the script to use any Identity Provider other than LDAP
 
 In the `for` loop that goers over each group read from the CSV whitelist in the `main.py/start_sync()` function LDAP gets called for all members of the group:
 
@@ -68,40 +60,5 @@ replace this with custom code to output something like:
 
 for `ldap_users` and a string for `leader_mail`.
 
-### Set Environment
 
-   LDAP_HOST (LDAP URL)   
-   
-      LDAP_HOST: "ldaps://<HOST>:636" 
-
-   LDAP_DN (Bind User)
-
-      LDAP_DN: "cn=<user>,dc=example,dc=com"
-
-   LDAP_PASSWORD (for Bind User)
-
-      LDAP_PASSWORD: "<Secret>"
-
-   LDAP_BASE_DN (Search Path)
-
-      LDAP_BASE_DN: "ou=<accounts>,dc=example,dc=com"
-
-   LDAP_SEARCH_GROUP (Where to find GroupName in memberOf Attribute)
-    
-      LDAP_SEARCH_GROUP: "memberof=cn={groupname},ou=<groups>,dc=example,dc=com"
-
-   LDAP_SEARCH_USER_ATTRS (Which Attributes will be )
-
-      LDAP_SEARCH_USER_ATTRS: "cn,sn,givenName,mail"
-
-   ELABFTW_HOST (ELBAFTW Host URL)
-        
-      ELABFTW_HOST: "https://elabftw.example.com"
-   
-   ELABFTW_APIKEY (Sysadmin Api Key)
-
-      ELABFTW_APIKEY: "<secret>"
-
-   ROOT_CERTS_DIR (Default certs dir to check LDAP/Elabftw Host certs)
-
-      ROOT_CERTS_DIR: "/etc/ssl/certs"
+ 
