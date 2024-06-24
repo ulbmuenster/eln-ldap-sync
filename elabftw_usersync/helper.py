@@ -7,6 +7,8 @@ import sys
 
 from progress.bar import Bar
 
+from elabftw_usersync.logger_config import logger
+
 
 class UserSyncException(Exception):
     """This exception is raised when an error occurs during user synchronization."""
@@ -14,11 +16,6 @@ class UserSyncException(Exception):
     def __init__(self, msg):
         """Initialize the exception with a message."""
         self.msg = msg
-
-
-def error_print(*args, **kwargs):
-    """Provide a print function that prints to stderr."""
-    print(*args, file=sys.stderr, **kwargs)
 
 
 def init_ldap():
@@ -31,22 +28,26 @@ def init_ldap():
     ldap_search_user_attrs = os.getenv("LDAP_SEARCH_USER_ATTRS")
 
     if ldap_host is None:
-        error_print("Environment variable LDAP_HOST is not set.")
-        sys.exit(1)
+        logger.critical("Environment variable LDAP_HOST is not set.")
     if ldap_dn is None:
-        error_print("Environment variable LDAP_DN is not set.")
-        sys.exit(1)
+        logger.critical("Environment variable LDAP_DN is not set.")
     if ldap_base_dn is None:
-        error_print("Environment variable LDAP_BASE_DN is not set.")
-        sys.exit(1)
+        logger.critical("Environment variable LDAP_BASE_DN is not set.")
     if ldap_password is None:
-        error_print("Environment variable LDAP_PASSWORD is not set.")
-        sys.exit(1)
+        logger.critical("Environment variable LDAP_PASSWORD is not set.")
     if ldap_search_group is None:
-        error_print("Environment variable LDAP_SEARCH_GROUP is not set.")
-        sys.exit(1)
+        logger.critical("Environment variable LDAP_SEARCH_GROUP is not set.")
     if ldap_search_user_attrs is None:
-        error_print("Environment variable LDAP_SEARCH_USER_ATTRS is not set.")
+        logger.critical("Environment variable LDAP_SEARCH_USER_ATTRS is not set.")
+
+    if (
+        ldap_host is None
+        or ldap_dn is None
+        or ldap_base_dn is None
+        or ldap_password is None
+        or ldap_search_group is None
+        or ldap_search_user_attrs is None
+    ):
         sys.exit(1)
 
     return (
@@ -80,10 +81,10 @@ def init_elabftw():
     elabftw_apikey = os.getenv("ELABFTW_APIKEY")
 
     if elabftw_host is None:
-        error_print("Environment variable ELABFTW_HOST is not set.")
+        logger.critical("Environment variable ELABFTW_HOST is not set.")
         sys.exit(1)
     if elabftw_apikey is None:
-        error_print("Environment variable ELABFTW_APIKEY is not set.")
+        logger.critical("Environment variable ELABFTW_APIKEY is not set.")
         sys.exit(1)
 
     return elabftw_host, elabftw_apikey
@@ -95,7 +96,9 @@ def read_whitelist() -> list:
 
     :return: list of dicts of the groups and leaders
     """
-    whitelist_path = f"{get_whitelist_filename()}"
+    from pathlib import Path
+
+    whitelist_path = Path(Path.cwd(), get_whitelist_filename())
     data = []
     try:
         with open(whitelist_path, "r") as file:
@@ -103,16 +106,21 @@ def read_whitelist() -> list:
             for row in reader:
                 data.append(dict(row))
     except FileNotFoundError as e:
-        error_print(
-            f"File not found: Processing file on path {whitelist_path} raised exception\n{e}."
+        logger.critical(
+            f"File not found: Processing raised exception: {e}. Check your whitelist file."
         )
+        sys.exit(1)
     except csv.Error as e:
-        error_print(
-            f"CSV Error: Processing file on path {whitelist_path} raised exception\n{e}."
+        logger.critical(
+            f"CSV Error: Processing file on path {whitelist_path} raised exception: {e}."
         )
     except Exception as e:
-        error_print(
-            f"Error: Processing file on path {whitelist_path} raised exception\n{e}."
+        logger.critical(
+            f"Error: Processing file on path {whitelist_path} raised exception: {e}."
+        )
+    else:
+        logger.success(
+            f"Whitelist file {whitelist_path} with {len(data)} entries successfully read."
         )
     return data
 
@@ -161,7 +169,7 @@ def parse_leader_mail_from_ldap(parsed_users: list, leader_acc: str) -> str:
             break
 
     if not leader_mail:
-        error_print(
+        logger.error(
             f"No leader mail address for ID {leader_acc} could be obtained from the LDAP server."
         )
 

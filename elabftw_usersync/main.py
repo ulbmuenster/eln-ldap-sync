@@ -1,6 +1,9 @@
 # Copyright (C) 2024 University of Münster
 # elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 """This module is the entry point for the user synchronization script."""
+import os
+
+import click
 import ldap
 from dotenv import load_dotenv
 
@@ -12,13 +15,12 @@ from elabftw_usersync.helper import (
     read_whitelist,
 )
 from elabftw_usersync.idm_ldap import LDAP
+from elabftw_usersync.logger_config import logger
 from elabftw_usersync.processing import (
     process_elabftw,
     process_ldap,
     process_removed_users,
 )
-import click
-import os
 
 
 @click.command()
@@ -27,8 +29,11 @@ def start_sync(whitelist):
     """Provide main function to start the synchronization process."""
     # read .env file
     load_dotenv()
+    logger.info("Starting user synchronization...")
     if whitelist is not None:
         os.environ["WHITELIST_FILENAME"] = whitelist
+    # make sure the whitelist is set and readable
+    group_dicts = read_whitelist()
     # --------------------------------------------------
     (
         LDAP_HOST,
@@ -39,7 +44,7 @@ def start_sync(whitelist):
         LDAP_SEARCH_USER_ATTRS,
     ) = init_ldap()
 
-    print(f"Connecting to LDAP at {LDAP_HOST}...")
+    logger.info(f"Connecting to LDAP at {LDAP_HOST}...")
     try:
         ld = LDAP(LDAP_HOST, LDAP_DN, LDAP_PASSWORD)
     except ldap.SERVER_DOWN:
@@ -50,7 +55,7 @@ def start_sync(whitelist):
         raise UserSyncException("Error connecting to LDAP: INVALID CREDENTIALS")
     # --------------------------------------------------
     ELABFTW_HOST, ELABFTW_APIKEY = init_elabftw()
-    print(
+    logger.info(
         f"Connecting to ElabFTW at {ELABFTW_HOST} and gathering data about all users..."
     )
     elabftw = ElabFTW(ELABFTW_HOST, ELABFTW_APIKEY)
@@ -68,12 +73,8 @@ def start_sync(whitelist):
     # --------------------------------------------------
     # Next steps: For each group in the whitelist we need to get the ldap users and the leader mail address.
 
-    group_dicts = read_whitelist()
-
     for group in group_dicts:
-        print("----------------------------------------")
-        print(f"Processing team {group['groupname']}")
-        print("----------------------------------------")
+        logger.info(f"Processing team {group['groupname']}")
         ldap_users, leader_mail = process_ldap(
             ld,
             LDAP_BASE_DN,
