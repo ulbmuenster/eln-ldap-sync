@@ -1,4 +1,5 @@
 # Copyright (C) 2024 University of Münster
+"""This module provides a class for interacting with an ElabFTW server."""
 
 import requests
 from progress.bar import Bar
@@ -7,12 +8,14 @@ from elabftw_usersync.helper import UserSyncException, error_print
 
 
 class ElabFTW:
+    """Class for interacting with an ElabFTW server."""
+
     session = None
     host_url = None
 
     def __init__(self, host_url, apikey):
         """
-        Initializes an instance of the ElabFTW class.
+        Initialize an instance of the ElabFTW class.
 
         Args:
             host_url (str): The URL of the ElabFTW server.
@@ -28,9 +31,8 @@ class ElabFTW:
     def check_connection(self):
         """Check if the connection to ElabFTW is working.
 
-        :return: True if the connection is working, otherwise raises a UserSyncException
+        Return True if the connection is working, otherwise raises a UserSyncException
         """
-
         try:
             resp = self.session.get(self.host_url + "/api/v2/info")
         except requests.exceptions.ConnectionError:
@@ -52,9 +54,9 @@ class ElabFTW:
 
     def create_users_dict(self):
         """
-        Retrieves user data for all users and returns a list of user dictionaries.
+        Retrieve user data for all users and returns a list of user dictionaries.
 
-        Returns:
+        Return:
             list: A list of user dictionaries containing user data.
         """
         user_data_list = []
@@ -72,9 +74,9 @@ class ElabFTW:
 
     def get_userarchive_id(self):
         """
-        Retrieves the userarchive ID from the team ID.
+        Retrieve the userarchive ID from the team ID.
 
-        Returns:
+        Return:
             int: The userarchive ID.
         """
         self.userarchiv_id = self.get_team_id("userarchiv")
@@ -109,7 +111,7 @@ class ElabFTW:
         return_id: bool = True,
     ) -> str | int:
         """
-        Creates user in ElabFTW.
+        Create user in ElabFTW.
 
         :param firstname: User's first name.
         :param lastname: User's last name.
@@ -173,7 +175,7 @@ class ElabFTW:
 
     def toggle_user_archived(self, user_id: int):
         """
-        Toggles the archived status of a user.
+        Toggle the archived status of a user.
 
         Args:
             user_id (int): The ID of the user to toggle.
@@ -199,7 +201,6 @@ class ElabFTW:
         :param email: The email address of the user
         :return: the id of the user
         """
-
         uid = None
         for user in self.all_users:
             if user["orgid"] == uniid:
@@ -262,9 +263,8 @@ class ElabFTW:
         """
         Get all teams from ElabFTW.
 
-        :return: list of teams
+        Return: list of teams
         """
-
         resp = self.session.get(self.host_url + "/api/v2/teams")
 
         if resp.status_code != 200:
@@ -288,7 +288,7 @@ class ElabFTW:
 
     def get_team_owners(self, team_id: int) -> int:
         """
-        Get the team owner of a team
+        Get the team owner of a team.
 
         :param team_id: The team id
         :return: The user id of the team owner
@@ -365,13 +365,12 @@ class ElabFTW:
                         error_print("Error setting owner of a team: " + resp2.text)
 
     def ensure_single_teamowner(self, new_owner_id: int, team_id: int):
-        """Ensures that only one person at a time is the teamowner
+        """Ensure that only one person at a time is the teamowner.
 
         Keyword arguments:
         argument -- description
         Return: return_description
         """
-
         # get the teams current owner
         team_owners = self.get_team_owners(team_id)
         if len(team_owners) == 0:
@@ -472,11 +471,11 @@ class ElabFTW:
     def remove_users_from_team(self, uni_ids: list, team_name: str) -> list:
         """
         Remove users from a given team in ElabFTW.
+
         :param uni_ids: list of uni_ids
         :param team: The team id
         :return: list of dicts of the archived users
         """
-
         removed_users = []
         with Bar("Removing users from team", max=len(uni_ids)) as bar:
             for uni_id in uni_ids:
@@ -487,9 +486,7 @@ class ElabFTW:
         return removed_users
 
     def get_teams_for_user(self, user_id: int) -> dict:
-        """
-        For a given user_id get all associated team_ids.
-        """
+        """For a given user_id get all associated team_ids."""
         data = []
         if isinstance(user_id, tuple):
             user_id = user_id[0]

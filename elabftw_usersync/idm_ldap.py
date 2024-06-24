@@ -1,22 +1,23 @@
 # Copyright (C) 2024 University of Münster
-
+"""This module contains the LDAP class for the user synchronization script."""
 import ldap
 
 from elabftw_usersync.helper import get_root_certs_dir
 
 
 class LDAP:
+    """Class to handle LDAP connections."""
+
     conn = None
 
     def __init__(self, host_url, dn, password):
         """
-        LDAP class for IDM
+        LDAP class for IDM.
 
         :param host_url: LDAP host url
         :param dn: LDAP DN
         :param password: LDAP password
         """
-
         ld = ldap.initialize(host_url)
 
         # Tell python-ldap where root certificates are stored and how to check them
@@ -33,7 +34,7 @@ class LDAP:
 
     def search(self, base_dn, filter_str: str = None, attrslist: list = None) -> list:
         """
-        Search LDAP for all users within a group
+        Search LDAP for all users within a group.
 
         :param base_dn: LDAP BaseDN
         :param filter_str: LDAP filter eg. "cn=user@mail.com"

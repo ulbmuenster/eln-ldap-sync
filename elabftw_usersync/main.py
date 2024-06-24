@@ -1,5 +1,5 @@
 # Copyright (C) 2024 University of Münster
-
+"""This module is the entry point for the user synchronization script."""
 import ldap
 from dotenv import load_dotenv
 
@@ -19,6 +19,7 @@ from elabftw_usersync.processing import (
 
 
 def start_sync():
+    """Provide main function to start the synchronization process."""
     # read .env file
     load_dotenv()
     # --------------------------------------------------

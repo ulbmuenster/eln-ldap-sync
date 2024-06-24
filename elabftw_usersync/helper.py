@@ -1,5 +1,5 @@
 # Copyright (C) 2024 University of Münster
-
+"""This module contains helper functions for the user synchronization script."""
 import csv
 import os
 import sys
@@ -8,15 +8,20 @@ from progress.bar import Bar
 
 
 class UserSyncException(Exception):
+    """This exception is raised when an error occurs during user synchronization."""
+
     def __init__(self, msg):
+        """Initialize the exception with a message."""
         self.msg = msg
 
 
 def error_print(*args, **kwargs):
+    """Provide a print function that prints to stderr."""
     print(*args, file=sys.stderr, **kwargs)
 
 
 def init_ldap():
+    """Class to initialize the LDAP connection."""
     ldap_host = os.getenv("LDAP_HOST")
     ldap_dn = os.getenv("LDAP_DN")
     ldap_base_dn = os.getenv("LDAP_BASE_DN")
@@ -48,18 +53,22 @@ def init_ldap():
 
 
 def get_root_certs_dir():
+    """Return the root certificates directory."""
     return os.getenv("ROOT_CERTS_DIR") or "/etc/ssl/certs"
 
 
 def get_whitelist_filename():
+    """Return the whitelist filename."""
     return os.getenv("WHITELIST_FILENAME") or "group_whitelist.csv"
 
 
 def get_ldap_pseudo_mail():
+    """Return the LDAP pseudo mail flag."""
     return os.getenv("LDAP_PSEUDO_MAIL") or "FALSE"
 
 
 def init_elabftw():
+    """Class to initialize the ElabFTW connection."""
     elabftw_host = os.getenv("ELABFTW_HOST")
     elabftw_apikey = os.getenv("ELABFTW_APIKEY")
 
@@ -73,7 +82,7 @@ def init_elabftw():
 
 def read_whitelist() -> list:
     """
-    Read the group whitelist from a file
+    Read the group whitelist from a file.
 
     :return: list of dicts of the groups and leaders
     """
@@ -100,9 +109,7 @@ def read_whitelist() -> list:
 
 
 def parse_users_from_ldap(ldap_users_obj: list) -> list:
-    """
-    Parse user from an LDAP object
-    """
+    """Parse user from an LDAP object."""
     users = []
 
     with Bar("Parsing users from LDAP", max=len(ldap_users_obj)) as bar:
@@ -136,6 +143,7 @@ def parse_users_from_ldap(ldap_users_obj: list) -> list:
 
 
 def parse_leader_mail_from_ldap(parsed_users: list, leader_acc: str) -> str:
+    """Parse the leader mail from the LDAP users."""
     leader_mail = None
 
     for user in parsed_users:
@@ -153,13 +161,12 @@ def parse_leader_mail_from_ldap(parsed_users: list, leader_acc: str) -> str:
 
 def diff_users(ldap_users: list, elabftw_users: list) -> (list, list):
     """
-    Calculate the difference between the users from ldap and elabftw
+    Calculate the difference between the users from ldap and elabftw.
 
     :param ldap_users: list of users from ldap
     :param elabftw_users: list of users from elabftw
     :return: tuple of lists. First list is the users to add, second list is the users to remove
     """
-
     # Because we operate on sets, we can use the difference operator for disjunction
     # if an account exists only in elabftw, we need to remove it
     # if an account exists only in ldap, we need to add it

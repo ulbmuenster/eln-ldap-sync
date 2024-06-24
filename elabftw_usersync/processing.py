@@ -1,5 +1,5 @@
 # Copyright (C) 2024 University of Münster
-
+"""This module contains the processing logic for the user synchronization script."""
 from progress.bar import Bar
 
 from elabftw_usersync.helper import (
@@ -20,7 +20,8 @@ def process_ldap(
     leader_acc: str,
 ) -> (list, str):
     """
-    Returns a list of users from LDAP, already parsed into a dev-friendly format and the leader mail of given leader_acc
+    Return a list of users from LDAP, already parsed into a dev-friendly format and the leader mail of given leader_acc.
+
     The leader mail is None, if the leader is not listed in the given ldap group.
 
     :param ld: The configured LDAP instance to be used
@@ -29,7 +30,6 @@ def process_ldap(
     :param ldap_search_user_attrs: The LDAP attributes, which should be pulled from the user
     :return: list of dict of users and the team leader mail
     """
-
     print("Pull team from LDAP...")
     users_results = ld.search(
         ldap_base_dn,
@@ -54,7 +54,7 @@ def process_elabftw(
     leader_mail: str,
 ):
     """
-    Process the users from LDAP and add them to ElabFTW
+    Process the users from LDAP and add them to ElabFTW.
 
     :param elabftw_host: The ElabFTW host eg. https://elabftw.example.com:1234
     :param elabftw_apikey: The ElabFTW API key
@@ -62,7 +62,6 @@ def process_elabftw(
     :param team_name: The name of the team, the users should be added to
     :return: None
     """
-
     if not leader_mail:
         error_print(
             f"Skipping the team {team_name} because no leader mail adress could be obtained from LDAP."
@@ -152,14 +151,13 @@ def process_elabftw(
 
 def process_removed_users(elabftw, team, seen_uniids_from_ldap: list):
     """
-    Compare the users from LDAP-Group with the Users assigned to the ElabFTW-team
-      and archive the users in ElabFTW which are not in LDAP anymore.
+    Compare the users from LDAP-Group with the Users assigned to the ElabFTW-team and archive the users in ElabFTW which are not in LDAP anymore.
+
     :param elabftw_host:
     :param elabftw_apikey:
     :param seen_mail_address_from_ldap:
     :return: None
     """
-
     print("Pull current users for the team from ElabFTW to calculate changes...")
     team_users = elabftw.get_users_for_team(elabftw.get_team_id(team))
     # team_users is a list of dicts
