@@ -9,6 +9,7 @@ requests = "*"
 progress = "*"
 elabftw-usersync = {editable = true, path = "."}
 python-dotenv = "*"
+click = "*"
 
 [dev-packages]
 pytest = "*"

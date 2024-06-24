@@ -17,12 +17,18 @@ from elabftw_usersync.processing import (
     process_ldap,
     process_removed_users,
 )
+import click
+import os
 
 
-def start_sync():
+@click.command()
+@click.option("--whitelist", required=False, type=str, help="Path to the whitelist.")
+def start_sync(whitelist):
     """Provide main function to start the synchronization process."""
     # read .env file
     load_dotenv()
+    if whitelist is not None:
+        os.environ["WHITELIST_FILENAME"] = whitelist
     # --------------------------------------------------
     (
         LDAP_HOST,

@@ -31,17 +31,23 @@ def init_ldap():
     ldap_search_user_attrs = os.getenv("LDAP_SEARCH_USER_ATTRS")
 
     if ldap_host is None:
-        error_print("Environment variable LDAP_HOST is not set")
+        error_print("Environment variable LDAP_HOST is not set.")
+        sys.exit(1)
     if ldap_dn is None:
-        error_print("Environment variable LDAP_DN is not set")
+        error_print("Environment variable LDAP_DN is not set.")
+        sys.exit(1)
     if ldap_base_dn is None:
-        error_print("Environment variable LDAP_BASE_DN is not set")
+        error_print("Environment variable LDAP_BASE_DN is not set.")
+        sys.exit(1)
     if ldap_password is None:
-        error_print("Environment variable LDAP_PASSWORD is not set")
+        error_print("Environment variable LDAP_PASSWORD is not set.")
+        sys.exit(1)
     if ldap_search_group is None:
-        error_print("Environment variable LDAP_SEARCH_GROUP is not set")
+        error_print("Environment variable LDAP_SEARCH_GROUP is not set.")
+        sys.exit(1)
     if ldap_search_user_attrs is None:
-        error_print("Environment variable LDAP_SEARCH_USER_ATTRS is not set")
+        error_print("Environment variable LDAP_SEARCH_USER_ATTRS is not set.")
+        sys.exit(1)
 
     return (
         ldap_host,
@@ -74,9 +80,11 @@ def init_elabftw():
     elabftw_apikey = os.getenv("ELABFTW_APIKEY")
 
     if elabftw_host is None:
-        error_print("Environment variable ELABFTW_HOST is not set")
+        error_print("Environment variable ELABFTW_HOST is not set.")
+        sys.exit(1)
     if elabftw_apikey is None:
-        error_print("Environment variable ELABFTW_APIKEY is not set")
+        error_print("Environment variable ELABFTW_APIKEY is not set.")
+        sys.exit(1)
 
     return elabftw_host, elabftw_apikey
 
@@ -87,7 +95,7 @@ def read_whitelist() -> list:
 
     :return: list of dicts of the groups and leaders
     """
-    whitelist_path = f"./{get_whitelist_filename()}"
+    whitelist_path = f"{get_whitelist_filename()}"
     data = []
     try:
         with open(whitelist_path, "r") as file:
