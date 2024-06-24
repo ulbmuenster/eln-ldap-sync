@@ -1,3 +1,5 @@
+# Copyright (C) 2024 University of Münster
+
 from progress.bar import Bar
 
 from elabftw_usersync.helper import (

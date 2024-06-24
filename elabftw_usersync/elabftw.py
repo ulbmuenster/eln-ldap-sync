@@ -1,3 +1,5 @@
+# Copyright (C) 2024 University of Münster
+
 import requests
 from progress.bar import Bar
 

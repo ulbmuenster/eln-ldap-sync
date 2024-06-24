@@ -1,4 +1,4 @@
-#!/bin/env python3
+# Copyright (C) 2024 University of Münster
 
 import ldap
 from dotenv import load_dotenv

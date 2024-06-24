@@ -1,3 +1,5 @@
+# Copyright (C) 2024 University of Münster
+
 from unittest.mock import Mock
 
 import pytest

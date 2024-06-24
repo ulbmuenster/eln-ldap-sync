@@ -1,3 +1,5 @@
+# Copyright (C) 2024 University of Münster
+
 import csv
 import os
 from unittest import mock
@@ -10,9 +12,9 @@ from hypothesis import strategies as st
 from elabftw_usersync.helper import (
     UserSyncException,
     diff_users,
+    get_ldap_pseudo_mail,
     get_root_certs_dir,
     get_whitelist_filename,
-    get_ldap_pseudo_mail,
     init_elabftw,
     init_ldap,
     parse_leader_mail_from_ldap,

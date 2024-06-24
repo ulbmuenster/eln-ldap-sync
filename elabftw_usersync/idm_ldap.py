@@ -1,3 +1,5 @@
+# Copyright (C) 2024 University of Münster
+
 import ldap
 
 from elabftw_usersync.helper import get_root_certs_dir
