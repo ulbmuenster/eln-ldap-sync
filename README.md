@@ -19,8 +19,8 @@ apk add build-base openldap-dev python3-dev
 ### Run the script locally
 
 1. Get API Key in elabFTW: https://your-elab-instance.com/ucp.php?tab=4
-2. Copy the `.env.example` file to `.env` and fill in your data
-3. Provide a CSV List of groups, see `group_whitelist.csv` for an example
+2. Copy the `.env.example` file to `.env` and fill in your data (or use any other means to provide the needed environment variables)
+3. Provide a CSV List of groups in the folder you are running the script from (see `group_whitelist.csv` for an example)
 4. Set up a virtual Environment and install dependencies with pipen:
     ```bash
     pipenv install --dev
@@ -67,5 +67,6 @@ replace this with custom code to output something like:
 
 for `ldap_users` and a string for `leader_mail`.
 
+## CLI option to define a custom CSV Whitelist
 
- 
+If not called with `elabus --whitelist /path/to/csv` the script will look for the environment variable `WHITELIST_FILENAME` to determine the path of the CSV to read or default to `group_whitelist.csv` in the folder the script is run from.
