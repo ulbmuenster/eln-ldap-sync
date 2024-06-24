@@ -49,7 +49,7 @@ class ElabFTW:
         logger.info("Getting all users from ElabFTW...")
         resp = self.session.get(self.host_url + "/api/v2/users?includeArchived=1")
         if resp.status_code != 200:
-            logger.critical("Error getting users: " + resp.text)
+            logger.error("Error getting users: " + resp.text)
 
         return resp.json()
 
@@ -67,7 +67,7 @@ class ElabFTW:
             for user_id in user_ids:
                 user_resp = self.session.get(self.host_url + f"/api/v2/users/{user_id}")
                 if user_resp.status_code != 200:
-                    logger.critical("Error get user object: " + user_resp.text)
+                    logger.error("Error get user object: " + user_resp.text)
                 else:
                     user_data_list.append(user_resp.json())
                 bar.next()
@@ -141,7 +141,7 @@ class ElabFTW:
         post_user_resp = self.session.post(self.host_url + "/api/v2/users", json=data)
 
         if post_user_resp.status_code != 201:
-            logger.critical("Error creating user: " + post_user_resp.text)
+            logger.error("Error creating user: " + post_user_resp.text)
             # break somehow?
             # return None
 
@@ -190,7 +190,7 @@ class ElabFTW:
         )
 
         if modify_user_resp.status_code != 200:
-            logger.critical("Error unarchiving user: " + modify_user_resp.text)
+            logger.error("Error unarchiving user: " + modify_user_resp.text)
             return None
         else:
             return modify_user_resp.json()
@@ -256,7 +256,7 @@ class ElabFTW:
         resp = self.session.patch(self.host_url + f"/api/v2/users/{user_id}", json=data)
 
         if resp.status_code != 200:
-            logger.critical("Error updating user: " + resp.text)
+            logger.error("Error updating user: " + resp.text)
 
         return resp.json()
 
@@ -269,7 +269,7 @@ class ElabFTW:
         resp = self.session.get(self.host_url + "/api/v2/teams")
 
         if resp.status_code != 200:
-            logger.critical("Error getting teams: " + resp.text)
+            logger.error("Error getting teams: " + resp.text)
 
         return resp.json()
 
@@ -301,7 +301,7 @@ class ElabFTW:
                 self.host_url + f"/api/v2/users/{user['user_id']}"
             )
             if user_resp.status_code != 200:
-                logger.critical("Error get user object: " + user_resp.text)
+                logger.error("Error get user object: " + user_resp.text)
             user = user_resp.json()
             for i, team in enumerate(user["teams"]):
                 if team["id"] == team_id:
@@ -348,7 +348,7 @@ class ElabFTW:
                     )
 
                     if resp.status_code != 200:
-                        logger.critical("Error setting owner of a team: " + resp.text)
+                        logger.error("Error setting owner of a team: " + resp.text)
 
                     patchuser_make_user_instead_admin_payload = {
                         "action": "patchuser2team",
@@ -363,7 +363,7 @@ class ElabFTW:
                     )
 
                     if resp2.status_code != 200:
-                        logger.critical("Error setting owner of a team: " + resp2.text)
+                        logger.error("Error setting owner of a team: " + resp2.text)
 
     def ensure_single_teamowner(self, new_owner_id: int, team_id: int):
         """Ensure that only one person at a time is the teamowner.
@@ -440,7 +440,7 @@ class ElabFTW:
             )
 
             if resp.status_code != 200:
-                logger.critical("Error setting owner of a team: " + resp.text)
+                logger.error("Error setting owner of a team: " + resp.text)
             else:
                 for t in resp.json()["teams"]:
                     if t["id"] == team_id:
@@ -458,7 +458,7 @@ class ElabFTW:
                                 json=patchuser_make_admin_payload,
                             )
                             if resp.status_code != 200:
-                                logger.critical(
+                                logger.error(
                                     "Error setting admin of a team: " + resp.text
                                 )
                             else:
@@ -467,7 +467,7 @@ class ElabFTW:
                                 )
                                 return True
                         else:
-                            logger.critical(
+                            logger.error(
                                 f"Error while setting user with the id {user_id} as owner of the team {team_id}"
                             )
 
@@ -531,7 +531,7 @@ class ElabFTW:
             )
 
             if resp.status_code != 200:
-                logger.critical("Error removing user from team: " + resp.text)
+                logger.error("Error removing user from team: " + resp.text)
             if self.toggle_user_archived(user_id) is not None:
                 logger.info(f"User {user_id} was archived.")
 
@@ -548,6 +548,6 @@ class ElabFTW:
             )
 
             if resp.status_code != 200:
-                logger.critical("Error removing user from team: " + resp.text)
+                logger.error("Error removing user from team: " + resp.text)
 
         return resp.json()

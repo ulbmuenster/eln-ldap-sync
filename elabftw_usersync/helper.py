@@ -167,7 +167,7 @@ def parse_leader_mail_from_ldap(parsed_users: list, leader_acc: str) -> str:
             break
 
     if not leader_mail:
-        logger.critical(
+        logger.error(
             f"No leader mail address for ID {leader_acc} could be obtained from the LDAP server."
         )
 

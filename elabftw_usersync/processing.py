@@ -64,7 +64,7 @@ def process_elabftw(
     :return: None
     """
     if not leader_mail:
-        logger.critical(
+        logger.error(
             f"Skipping the team {team_name} because no leader mail adress could be obtained from LDAP."
         )
         return False
@@ -74,7 +74,7 @@ def process_elabftw(
     team_id = elabftw.get_team_id(team_name)
 
     if not team_id:
-        logger.critical(
+        logger.error(
             f"Skipping the team {team_name} because it could not be found in this Instance of ElabFTW. Please make sure the team exists."
         )
         return False
@@ -89,7 +89,7 @@ def process_elabftw(
             break
 
     if not team_leader:
-        logger.critical(
+        logger.error(
             f"Skipping the team {team_name} because the leader {leader_mail} could not be found in LDAP."
         )
         return False

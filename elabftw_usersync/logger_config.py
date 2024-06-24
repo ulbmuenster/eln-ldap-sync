@@ -17,11 +17,18 @@ logger.add(
     filter=lambda record: record["level"].name == "SUCCESS",
 )
 
+logger.add(
+    sys.stdout,
+    level="ERROR",
+    format="<fg #FF8234>{time} | {level}</fg #FF8234>: <b>{message}</b>",
+    filter=lambda record: record["level"].name == "ERROR",
+)
+
 # Add handler for CRITICAL level logs to stderr
 logger.add(
     sys.stderr,
     level="CRITICAL",
-    format="<red>{time} | {level}</red>: {message}",
+    format="<red>{time} | {level}</red>: <b>{message}</b>",
     filter=lambda record: record["level"].name == "CRITICAL",
 )
 
