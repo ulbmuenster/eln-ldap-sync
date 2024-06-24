@@ -10,6 +10,7 @@ progress = "*"
 elabftw-usersync = {editable = true, path = "."}
 python-dotenv = "*"
 click = "*"
+loguru = "*"
 
 [dev-packages]
 pytest = "*"
