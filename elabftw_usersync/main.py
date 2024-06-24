@@ -1,4 +1,5 @@
 # Copyright (C) 2024 University of Münster
+# elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 """This module is the entry point for the user synchronization script."""
 import ldap
 from dotenv import load_dotenv

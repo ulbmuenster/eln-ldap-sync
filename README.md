@@ -10,8 +10,8 @@ apk add build-base openldap-dev python3-dev
 
 ### Development: Set Env-Variables in `.env`
 
-1. Get API Key in elabFTW: https://eln.uni-muenster.de/ucp.php?tab=4
-2. Set up a virtual Environment and install dependencies
+1. Get API Key in elabFTW: https://your-elab-instance.com/ucp.php?tab=4
+2. Set up a virtual Environment and install dependencies and run the script
     ```bash
     python -m venv venv
     . ./venv/bin/activate
@@ -28,6 +28,12 @@ apk add build-base openldap-dev python3-dev
     ```
    
 ## Usage
+
+### Provide a CSV List of groups
+
+see `group_whitelist.csv` for an example
+
+### Adapt the 
 
 ### Set Environment
 

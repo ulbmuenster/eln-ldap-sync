@@ -1,4 +1,5 @@
 # Copyright (C) 2024 University of Münster
+# elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 """This module provides a class for interacting with an ElabFTW server."""
 
 import requests
