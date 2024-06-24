@@ -4,8 +4,9 @@
 
 import requests
 from progress.bar import Bar
-from elabftw_usersync.logger_config import logger
+
 from elabftw_usersync.helper import UserSyncException
+from elabftw_usersync.logger_config import logger
 
 
 class ElabFTW:

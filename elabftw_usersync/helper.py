@@ -4,8 +4,10 @@
 import csv
 import os
 import sys
-from elabftw_usersync.logger_config import logger
+
 from progress.bar import Bar
+
+from elabftw_usersync.logger_config import logger
 
 
 class UserSyncException(Exception):
