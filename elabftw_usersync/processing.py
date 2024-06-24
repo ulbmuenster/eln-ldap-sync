@@ -43,7 +43,7 @@ def process_ldap(
     logger.info("Search for team leader email...")
     team_leader_mail = parse_leader_mail_from_ldap(parsed_ldap_users, leader_acc)
 
-    logger.info("Done processing LDAP search results.")
+    logger.success("Done processing LDAP search results.")
 
     return parsed_ldap_users, team_leader_mail
 

@@ -6,7 +6,7 @@ logger.remove()
 logger.add(
     sys.stdout,
     level="INFO",
-    format="<green>{time} | {level}</green>: {message}",
+    format="<yellow>{time} | {level}</yellow>: {message}",
     filter=lambda record: record["level"].name == "INFO",
 )
 
