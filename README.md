@@ -33,7 +33,40 @@ apk add build-base openldap-dev python3-dev
 
 see `group_whitelist.csv` for an example
 
-### Adapt the 
+### Adapt the script to use any Identity Provider other than LDAP
+
+In the `for` loop that goers over each group read from the CSV whitelist in the `main.py/start_sync()` function LDAP gets called for all members of the group:
+
+```python
+ldap_users, leader_mail = process_ldap(
+   ld,
+   LDAP_BASE_DN,
+   LDAP_SEARCH_GROUP.format(groupname=group["groupname"]),
+   LDAP_SEARCH_USER_ATTRS.split(","),
+   group["leader"],
+)
+```
+
+replace this with custom code to output something like:
+
+```
+[
+   {
+      "email": "max.mustermann@uni-muenster.de",
+      "firstname": "Max",
+      "lastname": "Mustermann",
+      "uni_id": "m_muster01",
+   },
+   {
+      "email": "eva.beispiel@uni-muenster.de",
+      "firstname": "Eva",
+      "lastname": "Beispiel",
+      "uni_id": "e_beisp02",
+   },
+]
+```
+
+for `ldap_users` and a string for `leader_mail`.
 
 ### Set Environment
 
