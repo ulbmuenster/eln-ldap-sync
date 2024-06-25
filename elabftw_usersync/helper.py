@@ -4,6 +4,7 @@
 import csv
 import os
 import sys
+from pathlib import Path
 
 from progress.bar import Bar
 
@@ -96,7 +97,6 @@ def read_whitelist() -> list:
 
     :return: list of dicts of the groups and leaders
     """
-    from pathlib import Path
 
     whitelist_path = Path(Path.cwd(), get_whitelist_filename())
     data = []
@@ -114,14 +114,17 @@ def read_whitelist() -> list:
         logger.critical(
             f"CSV Error: Processing file on path {whitelist_path} raised exception: {e}."
         )
+        sys.exit(1)
     except Exception as e:
         logger.critical(
             f"Error: Processing file on path {whitelist_path} raised exception: {e}."
         )
+        sys.exit(1)
     else:
         logger.success(
             f"Whitelist file {whitelist_path} with {len(data)} entries successfully read."
         )
+        sys.exit(1)
     return data
 
 

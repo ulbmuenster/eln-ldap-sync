@@ -127,8 +127,7 @@ def process_elabftw(
             try:
                 elabftw.add_user_to_team(user_id, team_id)
             except UserSyncException as e:
-                logger.info(e.msg)
-                exit(1)
+                logger.error(e.msg)
             else:
                 # unarchive the user if he/she was archived before
                 if unarchived is True:
@@ -143,8 +142,7 @@ def process_elabftw(
     try:
         elabftw.ensure_single_teamowner(team_leader_id, team_id)
     except UserSyncException as e:
-        logger.info(e.msg)
-        exit(1)
+        logger.error(e.msg)
     else:
         logger.info("Teamowner set successfully.")
         return True

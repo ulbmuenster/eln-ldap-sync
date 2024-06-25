@@ -84,7 +84,6 @@ class LDAPTest(LDAPFakerMixin, unittest.TestCase):
             "(cn=a_weiss01)",
             ["cn", "sn", "givenName", "mail"],
         )
-        logger.info(results)
 
         self.assertEqual(len(results), 1)
         self.assertEqual(
