@@ -28,7 +28,7 @@ apk add build-base openldap-dev python3-dev
     ```
 5. Create a team called `userarchiv` in the elabFTW instance
 6. Create the team(s) defined in the `group_whitelist.csv` in elabFTW where elabFTW `orgid` needs to match the name you defined in the CSV file.
-7. run the script: `elabftw`
+7. run the script: `elabus --help`
    
 
 
