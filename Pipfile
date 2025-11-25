@@ -21,6 +21,7 @@ requests_mock = "*"
 hypothesis = "*"
 isort = "*"
 black = "*"
+pytest-loguru = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.11"

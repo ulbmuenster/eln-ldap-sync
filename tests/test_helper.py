@@ -1,4 +1,4 @@
-# Copyright (C) 2024 University of Münster
+# Copyright (C) 2024 - 2025 University of Münster
 # elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 
 import csv
@@ -9,9 +9,9 @@ from unittest.mock import patch
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from pytest_loguru.plugin import caplog
 
 from elabftw_usersync.helper import (
-    UserSyncException,
     diff_users,
     get_ldap_pseudo_mail,
     get_root_certs_dir,
@@ -159,80 +159,67 @@ def test_init_ldap_returns_vars():
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(["LDAP_HOST"]), clear=True)
-def test_init_ldap_error_if_host_unset(capfd):
-    (
-        LDAP_HOST,
-        LDAP_DN,
-        LDAP_BASE_DN,
-        LDAP_PASSWORD,
-        LDAP_SEARCH_GROUP,
-        LDAP_SEARCH_USER_ATTRS,
-    ) = init_ldap()
+def test_init_ldap_error_if_host_unset(caplog):
+    with pytest.raises(SystemExit):
+        (
+            LDAP_HOST,
+            LDAP_DN,
+            LDAP_BASE_DN,
+            LDAP_PASSWORD,
+            LDAP_SEARCH_GROUP,
+            LDAP_SEARCH_USER_ATTRS,
+        ) = init_ldap()
 
-    out, err = capfd.readouterr()
-
-    assert LDAP_HOST is None
-    assert err == "Environment variable LDAP_HOST is not set\n"
+        assert LDAP_HOST is None
+        assert "Environment variable LDAP_HOST is not set\n" in caplog.text
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(), clear=True)
-def test_get_whitelist_filename_returns_var(capfd):
+def test_get_whitelist_filename_returns_var(caplog):
     whitelist_filename = get_whitelist_filename()
 
-    out, err = capfd.readouterr()
-
     assert whitelist_filename == "test_whitelist.csv"
-    assert err == ""
+    assert caplog.messages == []
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(["WHITELIST_FILENAME"]), clear=True)
-def test_get_whitelist_filename_return_default_if_env_var_unset(capfd):
+def test_get_whitelist_filename_return_default_if_env_var_unset(caplog):
     whitelist_filename = get_whitelist_filename()
 
-    out, err = capfd.readouterr()
-
     assert whitelist_filename == "group_whitelist.csv"
-    assert err == ""
+    assert caplog.messages == []
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(), clear=True)
-def test_get_root_certs_dir_returns_var(capfd):
+def test_get_root_certs_dir_returns_var(caplog):
     root_certs_dir = get_root_certs_dir()
 
-    out, err = capfd.readouterr()
-
     assert root_certs_dir == "/etc/ssl/certs"
-    assert err == ""
+    assert caplog.messages == []
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(["ROOT_CERTS_DIR"]), clear=True)
-def test_get_root_certs_dir_return_default_if_env_var_unset(capfd):
+def test_get_root_certs_dir_return_default_if_env_var_unset(caplog):
     root_certs_dir = get_root_certs_dir()
 
-    out, err = capfd.readouterr()
-
     assert root_certs_dir == "/etc/ssl/certs"
-    assert err == ""
+    assert caplog.messages == []
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(), clear=True)
-def test_get_ldap_pseudo_mail_returns_var(capfd):
+def test_get_ldap_pseudo_mail_returns_var(caplog):
     ldap_pseudo_mail = get_ldap_pseudo_mail()
 
-    out, err = capfd.readouterr()
-
     assert ldap_pseudo_mail == "TRUE"
-    assert err == ""
+    assert caplog.messages == []
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(["LDAP_PSEUDO_MAIL"]), clear=True)
-def test_get_ldap_pseudo_mail_return_default_if_env_var_unset(capfd):
+def test_get_ldap_pseudo_mail_return_default_if_env_var_unset(caplog):
     ldap_pseudo_mail = get_ldap_pseudo_mail()
 
-    out, err = capfd.readouterr()
-
     assert ldap_pseudo_mail == "FALSE"
-    assert err == ""
+    assert caplog.messages == []
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(), clear=True)
@@ -244,13 +231,12 @@ def test_init_elabftw_returns_vars():
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(["ELABFTW_HOST"]), clear=True)
-def test_init_elabftw_error_if_host_unset(capfd):
-    (ELABFTW_HOST, ELABFTW_APIKEY) = init_elabftw()
+def test_init_elabftw_error_if_host_unset(caplog):
+    with pytest.raises(SystemExit):
+        (ELABFTW_HOST, ELABFTW_APIKEY) = init_elabftw()
 
-    out, err = capfd.readouterr()
-
-    assert ELABFTW_HOST is None
-    assert err == "Environment variable ELABFTW_HOST is not set\n"
+        assert ELABFTW_HOST is None
+        assert "Environment variable ELABFTW_HOST is not set\n" in caplog.text
 
 
 def test_read_whitelist(double_correct_whitelist):
@@ -267,38 +253,39 @@ def test_read_whitelist(double_correct_whitelist):
 @mock.patch.dict(
     os.environ, {"WHITELIST_FILENAME": "non_existent_file.csv"}, clear=True
 )
-def test_read_whitelist_no_file(capfd):
-    whitelist_filename = get_whitelist_filename()
-    data_dict = read_whitelist()
-    out, err = capfd.readouterr()
+def test_read_whitelist_no_file(caplog):
+    with pytest.raises(SystemExit):
+        whitelist_filename = get_whitelist_filename()
+        data_dict = read_whitelist()
 
-    assert whitelist_filename == "non_existent_file.csv"
-    assert len(data_dict) == 0
-    assert data_dict == []
-    assert (
-        f"File not found: Processing file on path ./{whitelist_filename} raised exception\n"
-        in err
-    )
-
-
-def test_read_whitelist_malformed_csv(capfd):
-    with patch("builtins.open", side_effect=csv.Error):
-        read_whitelist()
-        out, err = capfd.readouterr()
-    assert (
-        f"CSV Error: Processing file on path ./{get_whitelist_filename()} raised exception\n"
-        in err
-    )
+        assert whitelist_filename == "non_existent_file.csv"
+        assert len(data_dict) == 0
+        assert data_dict == []
+        assert (
+            f"File not found: Processing file on path ./{whitelist_filename} raised exception\n"
+            in caplog.text
+        )
 
 
-def test_read_whitelist_input_not_csv(capfd):
-    with patch("builtins.open", side_effect=Exception()):
-        read_whitelist()
-        out, err = capfd.readouterr()
-    assert (
-        f"Error: Processing file on path ./{get_whitelist_filename()} raised exception\n"
-        in err
-    )
+def test_read_whitelist_malformed_csv(caplog):
+    with pytest.raises(SystemExit):
+        with patch("builtins.open", side_effect=csv.Error):
+            read_whitelist()
+
+        assert (
+            f"CSV Error: Processing file on path ./{get_whitelist_filename()} raised exception\n"
+            in caplog.text
+        )
+
+
+def test_read_whitelist_input_not_csv(caplog):
+    with pytest.raises(SystemExit):
+        with patch("builtins.open", side_effect=Exception()):
+            read_whitelist()
+        assert (
+            f"Error: Processing file on path ./{get_whitelist_filename()} raised exception\n"
+            in caplog.text
+        )
 
 
 def test_parse_users_from_ldap():
@@ -374,7 +361,7 @@ def test_parse_users_from_ldap_no_mail():
 
 
 @mock.patch.dict(os.environ, set_test_env_vars(["LDAP_PSEUDO_MAIL"]), clear=True)
-def test_parse_users_from_ldap_no_mail_no_pseudo():
+def test_parse_users_from_ldap_no_mail_no_pseudo(caplog):
     ldap_users_obj = [
         (
             "cn=e_beisp01,ou=person,dc=identity,dc=uni-muenster,dc=de",
@@ -389,12 +376,12 @@ def test_parse_users_from_ldap_no_mail_no_pseudo():
     # LDAP_PSEUDO_MAIL is set to FALSE as a default
     assert get_ldap_pseudo_mail() == "FALSE"
 
-    with pytest.raises(UserSyncException) as e_info:
-        parse_users_from_ldap(ldap_users_obj)
-        assert (
-            e_info.msg
-            == 'Error: No mail address could be obtained from LDAP for user with university id "a_weiss03"!'
-        )
+    parse_users_from_ldap(ldap_users_obj)
+
+    assert (
+        'Error: No mail address could be obtained from LDAP for user with university id "a_weiss03"!'
+        in caplog.text
+    )
 
 
 @given(ldap_users_list_strategy())
@@ -415,31 +402,29 @@ def test_parse_leader_mail_from_ldap():
     )
 
 
-def test_parse_leader_mail_from_ldap_leader_not_in_ldap(capfd):
+def test_parse_leader_mail_from_ldap_leader_not_in_ldap(caplog):
     parsed_ldap_users = parse_users_from_ldap(get_ldap_users_example())
     leader_acc = "a_weiss03"
 
-    parse_leader_mail_from_ldap(parsed_ldap_users, leader_acc)
+    leader_mail = parse_leader_mail_from_ldap(parsed_ldap_users, leader_acc)
 
-    out, err = capfd.readouterr()
-
+    assert leader_mail is None
     assert (
-        err
-        == f"No leader mail address for ID {leader_acc} could be obtained from the LDAP server.\n"
+        f"No leader mail address for ID {leader_acc} could be obtained from the LDAP server.\n"
+        in caplog.text
     )
 
 
-def test_parse_leader_mail_from_ldap_empty_list(capfd):
+def test_parse_leader_mail_from_ldap_empty_list(caplog):
     parsed_ldap_users = []
     leader_acc = "m_muster01"
 
-    parse_leader_mail_from_ldap(parsed_ldap_users, leader_acc)
+    leader_mail = parse_leader_mail_from_ldap(parsed_ldap_users, leader_acc)
 
-    out, err = capfd.readouterr()
-
+    assert leader_mail is None
     assert (
-        err
-        == f"No leader mail address for ID {leader_acc} could be obtained from the LDAP server.\n"
+        f"No leader mail address for ID {leader_acc} could be obtained from the LDAP server.\n"
+        in caplog.text
     )
 
 

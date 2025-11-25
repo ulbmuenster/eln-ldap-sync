@@ -1,4 +1,4 @@
-# Copyright (C) 2024 University of Münster
+# Copyright (C) 2024 - 2025 University of Münster
 # elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 
 import unittest
@@ -84,6 +84,7 @@ class LDAPTest(LDAPFakerMixin, unittest.TestCase):
             "(cn=a_weiss01)",
             ["cn", "sn", "givenName", "mail"],
         )
+        logger.info(results)
 
         self.assertEqual(len(results), 1)
         self.assertEqual(

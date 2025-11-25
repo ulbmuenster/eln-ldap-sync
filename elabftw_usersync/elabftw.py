@@ -1,11 +1,13 @@
-# Copyright (C) 2024 University of Münster
+# Copyright (C) 2024 - 2025 University of Münster
 # elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 """This module provides a class for interacting with an ElabFTW server."""
+
+import sys
 
 import requests
 from progress.bar import Bar
 
-from elabftw_usersync.helper import UserSyncException
+from elabftw_usersync import __version__
 from elabftw_usersync.logger_config import logger
 
 
@@ -15,7 +17,9 @@ class ElabFTW:
     session = None
     host_url = None
 
-    def __init__(self, host_url, apikey):
+    def __init__(
+        self, host_url, apikey, user_agent_string=f"elabftw_usersync_{__version__}"
+    ):
         """
         Initialize an instance of the ElabFTW class.
 
@@ -24,33 +28,45 @@ class ElabFTW:
             apikey (str): The API key used for authentication.
 
         """
+        logger.info(
+            "Initializing ElabFTW class with user_agent_string: " + user_agent_string
+        )
         self.host_url = host_url
         self.session = requests.Session()
-        self.session.headers.update({"Authorization": apikey})
+        self.session.headers.update(
+            {"Authorization": apikey, "User-Agent": user_agent_string}
+        )
         self.all_users = None
         self.user_data_list = None
 
     def check_connection(self):
         """Check if the connection to ElabFTW is working.
 
-        Return True if the connection is working, otherwise raises a UserSyncException
+        Return True if the connection is working, otherwise raises a critical error and exits the script.
         """
         try:
             resp = self.session.get(self.host_url + "/api/v2/info")
         except requests.exceptions.ConnectionError:
-            raise UserSyncException("Error connecting to ElabFTW: Connection refused")
+            logger.critical("Error connecting to ElabFTW: Connection refused")
+            sys.exit(1)
         else:
             if resp.status_code != 200:
-                raise UserSyncException("Error connecting to ElabFTW: " + resp.text)
+                logger.critical(
+                    "Error connecting to ElabFTW: "
+                    + str(resp.status_code)
+                    + " "
+                    + resp.text
+                )
+                sys.exit(1)
             else:
                 return True
 
     def get_all_users(self):
         """Get all users from ElabFTW as JSON."""
         logger.info("Getting all users from ElabFTW...")
-        resp = self.session.get(self.host_url + "/api/v2/users?includeArchived=1")
+        resp = self.session.get(self.host_url + "/api/v2/users")
         if resp.status_code != 200:
-            logger.error("Error getting users: " + resp.text)
+            logger.critical("Error getting users: " + resp.text)
 
         return resp.json()
 
@@ -68,7 +84,7 @@ class ElabFTW:
             for user_id in user_ids:
                 user_resp = self.session.get(self.host_url + f"/api/v2/users/{user_id}")
                 if user_resp.status_code != 200:
-                    logger.error("Error get user object: " + user_resp.text)
+                    logger.critical("Error get user object: " + user_resp.text)
                 else:
                     user_data_list.append(user_resp.json())
                 bar.next()
@@ -86,19 +102,21 @@ class ElabFTW:
 
     def get_users_for_team(self, team_id: int) -> list[dict]:
         """
-        Get all users from a team in ElabFTW.
+        Get all active users from a team in ElabFTW (ignoring archived users).
 
         :return: list of users
         """
         users_in_team = []
         for user in self.user_data_list:
             for team in user["teams"]:
-                if team["id"] == team_id:
+                if team["id"] == team_id and team["is_archived"] == 0:
                     user_dict = {}
                     user_dict["user_mail"] = user["email"]
                     user_dict["user_id"] = user["userid"]
                     user_dict["orgid"] = user["orgid"]
+
                     users_in_team.append(user_dict)
+
         return users_in_team
 
     def create_user(
@@ -142,7 +160,7 @@ class ElabFTW:
         post_user_resp = self.session.post(self.host_url + "/api/v2/users", json=data)
 
         if post_user_resp.status_code != 201:
-            logger.error("Error creating user: " + post_user_resp.text)
+            logger.critical("Error creating user: " + post_user_resp.text)
             # break somehow?
             # return None
 
@@ -175,39 +193,18 @@ class ElabFTW:
 
         return user_id
 
-    def toggle_user_archived(self, user_id: int):
-        """
-        Toggle the archived status of a user.
-
-        Args:
-            user_id (int): The ID of the user to toggle.
-
-        Returns:
-            dict or None: If the user is successfully unarchived, the JSON response from the server is returned as a dictionary.
-                          If there is an error unarchiving the user, None is returned.
-        """
-        modify_user_resp = self.session.patch(
-            self.host_url + f"/api/v2/users/{user_id}", json={"action": "archive"}
-        )
-
-        if modify_user_resp.status_code != 200:
-            logger.error("Error unarchiving user: " + modify_user_resp.text)
-            return None
-        else:
-            return modify_user_resp.json()
-
-    def get_user_id(self, uniid: str) -> tuple[int, bool]:
+    def get_user_id(self, uni_id: str) -> tuple[int, bool]:
         """
         Get user id from ElabFTW.
 
-        :param email: The email address of the user
+        :param uni_id: The university identifier of the user
         :return: the id of the user
         """
         uid = None
         for user in self.all_users:
-            if user["orgid"] == uniid:
+            if user["orgid"] == uni_id:
                 uid = user["userid"]
-                is_archived = user["archived"] == 1
+                is_archived = self.is_user_in_archive_team(uid)
                 break
         if uid is None:
             return None, False
@@ -221,29 +218,42 @@ class ElabFTW:
         lastname: str,
         uni_id: str,
         team_id: int = None,
-    ) -> tuple[int, bool]:
+    ) -> tuple[int, bool, bool]:
         """
         Get user id from ElabFTW or create it.
 
         :param firstname: User's first name.
         :param lastname: User's last name.
         :param email: User's email address.
-        :return: tuple: user id (int) and true/false if the user was archived/unarchived
+        :param team_id: The team id to check for team-specific archiving
+        :return: tuple: user id (int), true/false if the user was restored from the archive team, true/false if user is archived in specific team
         """
         uid, is_archived = self.get_user_id(uni_id)
+        restored = False
+        is_archived_in_team = False
+
         if uid is not None:
             if is_archived:
-                logger.info(f"User {email} is archived. Unarchiving it.")
-                if self.toggle_user_archived(uid) is not None:
-                    unarchived = True
-            else:
-                unarchived = False
-        else:
-            logger.info(f"User not found: {email}. Creating it.")
-            uid = self.create_user(email, firstname, lastname, uni_id, team_id)
-            unarchived = False
+                logger.info(f"User {uni_id} is archived. Restoring it.")
+                if self.remove_user_from_archive_team(uid, uni_id) is not None:
+                    restored = True
 
-        return uid, unarchived
+            # Check if user is archived in the specific team
+            if team_id is not None:
+                user = next(
+                    (user for user in self.user_data_list if user["userid"] == uid),
+                    None,
+                )
+                if user:
+                    for team in user["teams"]:
+                        if team["id"] == team_id and team["is_archived"] == 1:
+                            is_archived_in_team = True
+                            break
+        else:
+            logger.info(f"User not found: {uni_id}. Creating it.")
+            uid = self.create_user(email, firstname, lastname, uni_id, team_id)
+
+        return uid, restored, is_archived_in_team
 
     def add_user_to_team(self, user_id: int, team_id: int) -> dict:
         """
@@ -257,7 +267,7 @@ class ElabFTW:
         resp = self.session.patch(self.host_url + f"/api/v2/users/{user_id}", json=data)
 
         if resp.status_code != 200:
-            logger.error("Error updating user: " + resp.text)
+            logger.critical("Error updating user: " + resp.text)
 
         return resp.json()
 
@@ -270,7 +280,7 @@ class ElabFTW:
         resp = self.session.get(self.host_url + "/api/v2/teams")
 
         if resp.status_code != 200:
-            logger.error("Error getting teams: " + resp.text)
+            logger.critical("Error getting teams: " + resp.text)
 
         return resp.json()
 
@@ -302,7 +312,7 @@ class ElabFTW:
                 self.host_url + f"/api/v2/users/{user['user_id']}"
             )
             if user_resp.status_code != 200:
-                logger.error("Error get user object: " + user_resp.text)
+                logger.critical("Error get user object: " + user_resp.text)
             user = user_resp.json()
             for i, team in enumerate(user["teams"]):
                 if team["id"] == team_id:
@@ -349,7 +359,7 @@ class ElabFTW:
                     )
 
                     if resp.status_code != 200:
-                        logger.error("Error setting owner of a team: " + resp.text)
+                        logger.critical("Error setting owner of a team: " + resp.text)
 
                     patchuser_make_user_instead_admin_payload = {
                         "action": "patchuser2team",
@@ -364,7 +374,7 @@ class ElabFTW:
                     )
 
                     if resp2.status_code != 200:
-                        logger.error("Error setting owner of a team: " + resp2.text)
+                        logger.critical("Error setting owner of a team: " + resp2.text)
 
     def ensure_single_teamowner(self, new_owner_id: int, team_id: int):
         """Ensure that only one person at a time is the teamowner.
@@ -441,7 +451,7 @@ class ElabFTW:
             )
 
             if resp.status_code != 200:
-                logger.error("Error setting owner of a team: " + resp.text)
+                logger.critical("Error setting owner of a team: " + resp.text)
             else:
                 for t in resp.json()["teams"]:
                     if t["id"] == team_id:
@@ -459,7 +469,7 @@ class ElabFTW:
                                 json=patchuser_make_admin_payload,
                             )
                             if resp.status_code != 200:
-                                logger.error(
+                                logger.critical(
                                     "Error setting admin of a team: " + resp.text
                                 )
                             else:
@@ -468,26 +478,9 @@ class ElabFTW:
                                 )
                                 return True
                         else:
-                            logger.error(
+                            logger.critical(
                                 f"Error while setting user with the id {user_id} as owner of the team {team_id}"
                             )
-
-    def remove_users_from_team(self, uni_ids: list, team_name: str) -> list:
-        """
-        Remove users from a given team in ElabFTW.
-
-        :param uni_ids: list of uni_ids
-        :param team: The team id
-        :return: list of dicts of the archived users
-        """
-        removed_users = []
-        with Bar("Removing users from team", max=len(uni_ids)) as bar:
-            for uni_id in uni_ids:
-                user_id = self.get_user_id(uni_id)[0]
-                removed_users.append(self.remove_user_from_team(user_id, team_name))
-                bar.next()
-
-        return removed_users
 
     def get_teams_for_user(self, user_id: int) -> dict:
         """For a given user_id get all associated team_ids."""
@@ -505,50 +498,126 @@ class ElabFTW:
             data.append(tdict)
         return data
 
-    def remove_user_from_team(self, user_id: int, team_name: str) -> dict:
+    def is_user_in_archive_team(self, user_id: int):
+        user_archive_team_id = self.get_userarchive_id()
+
+        for team in self.get_teams_for_user(user_id):
+            if team["id"] == user_archive_team_id:
+                return True
+        else:
+            return False
+
+    def archive_users_in_team(self, uni_ids: list, team_name: str):
         """
-        Remove user from a team in ElabFTW.
+        Archive users in a given team in ElabFTW.
+
+        :param uni_ids: list of uni_ids
+        :param team: The team id
+        :return: list of dicts of the archived users
+        """
+        archived_users = []
+        with Bar("Archiving users in team", max=len(uni_ids)) as bar:
+            for uni_id in uni_ids:
+                user_id = self.get_user_id(uni_id)[0]
+                archived_users.append(self.archive_user_in_team(user_id, team_name))
+                logger.success(f"User {uni_id} removed from team {team_name}.")
+                bar.next()
+
+        return archived_users
+
+    def archive_user_in_team(self, user_id: int, team_name: str):
+        """Archive a user in an ElabFTW team.
 
         :param user_id: User id
-        :team_id: The team id
+        :team_id: Team id
         :return: dict of the archived user
         """
-        logger.info(f"Removing user {user_id} from team {team_name}")
-        team_id = self.get_team_id(team_name)
-        # first check if the user is only assigned to one team. If yes, add the user to the team `userarchiv` and remove the user from the team
-        user_teams = self.get_teams_for_user(user_id)
-        if len(user_teams) == 1:
-            userarchive_id = self.get_userarchive_id()
-            # Add user to team `userarchiv` so that the user is always in a team.
-            # It's been the last team the user was in, so now we archive it.
-            self.add_user_to_team(user_id, userarchive_id)
-            remove_user_from_team_payload = {
-                "action": "unreference",
-                "team": team_id,
-            }
-            resp = self.session.patch(
-                self.host_url + f"/api/v2/users/{user_id}",
-                json=remove_user_from_team_payload,
-            )
+        if isinstance(user_id, tuple):
+            user_id = user_id[0]
+        # get user data from self.user_data_list
+        user = next(
+            (user for user in self.user_data_list if user["userid"] == user_id), None
+        )
 
-            if resp.status_code != 200:
-                logger.error("Error removing user from team: " + resp.text)
-            if self.toggle_user_archived(user_id) is not None:
-                logger.info(f"User {user_id} was archived.")
+        for i, team in enumerate(user["teams"]):
+            team_id = self.get_team_id(team_name)
+            if team["id"] == team_id:
+                # Check if the user is already archived in this team
+                if team["is_archived"] == 0:
+                    logger.info(
+                        f"User {user_id} will be archived from team {team_name}."
+                    )
+                    # Archive user in this team
+                    patchuser_archive_payload = {
+                        "action": "patchuser2team",
+                        "userid": user_id,
+                        "team": team_id,
+                        "target": "is_archived",
+                        "content": True,
+                    }
+                    resp = self.session.patch(
+                        self.host_url + f"/api/v2/users/{user_id}",
+                        json=patchuser_archive_payload,
+                    )
 
+                    if resp.status_code != 200:
+                        logger.critical("Error archiving user: " + resp.text)
+
+                    return resp.json()
+
+    def unarchive_user_in_team(self, user_id: int, team_id: int):
+        """Unarchive a user in an ElabFTW team.
+
+        :param user_id: User id
+        :param team_id: Team id
+        :return: dict of the unarchived user
+        """
+        if isinstance(user_id, tuple):
+            user_id = user_id[0]
+
+        logger.info(f"User {user_id} will be unarchived in team {team_id}.")
+        # Unarchive user in this team
+        patchuser_unarchive_payload = {
+            "action": "patchuser2team",
+            "userid": user_id,
+            "team": team_id,
+            "target": "is_archived",
+            "content": False,
+        }
+        resp = self.session.patch(
+            self.host_url + f"/api/v2/users/{user_id}",
+            json=patchuser_unarchive_payload,
+        )
+
+        if resp.status_code != 200:
+            logger.critical("Error unarchiving user: " + resp.text)
         else:
-            # User is in more than one team. We can remove the user from the team without adding it to the team `userarchiv`.
-            remove_user_from_team_payload = {
-                "action": "unreference",
-                "userid": user_id,
-                "team": team_id,
-            }
-            resp = self.session.patch(
-                self.host_url + f"/api/v2/users/{user_id}",
-                json=remove_user_from_team_payload,
-            )
+            logger.success(f"User {user_id} unarchived in team {team_id}.")
 
-            if resp.status_code != 200:
-                logger.error("Error removing user from team: " + resp.text)
+        return resp.json()
+
+    def remove_user_from_archive_team(self, user_id: int, uni_id: str):
+        """
+        Remove a user from the archive team in ElabFTW.
+
+        :param user_id: User id
+        :return: dict of the archived user
+        """
+        user_archive_team_id = self.get_userarchive_id()
+
+        remove_user_from_team_payload = {
+            "action": "unreference",
+            "team": user_archive_team_id,
+        }
+        resp = self.session.patch(
+            self.host_url + f"/api/v2/users/{user_id}",
+            json=remove_user_from_team_payload,
+        )
+
+        if resp.status_code != 200:
+            logger.critical(
+                f"Error removing user {uni_id} from team user archive team: "
+                + resp.text
+            )
 
         return resp.json()

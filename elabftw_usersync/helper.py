@@ -1,22 +1,13 @@
-# Copyright (C) 2024 University of Münster
+# Copyright (C) 2024 - 2025 University of Münster
 # elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 """This module contains helper functions for the user synchronization script."""
 import csv
 import os
 import sys
-from pathlib import Path
 
 from progress.bar import Bar
 
 from elabftw_usersync.logger_config import logger
-
-
-class UserSyncException(Exception):
-    """This exception is raised when an error occurs during user synchronization."""
-
-    def __init__(self, msg):
-        """Initialize the exception with a message."""
-        self.msg = msg
 
 
 def init_ldap():
@@ -97,6 +88,7 @@ def read_whitelist() -> list:
 
     :return: list of dicts of the groups and leaders
     """
+    from pathlib import Path
 
     whitelist_path = Path(Path.cwd(), get_whitelist_filename())
     data = []
@@ -124,7 +116,6 @@ def read_whitelist() -> list:
         logger.success(
             f"Whitelist file {whitelist_path} with {len(data)} entries successfully read."
         )
-        sys.exit(1)
     return data
 
 
@@ -138,17 +129,17 @@ def parse_users_from_ldap(ldap_users_obj: list) -> list:
 
             uni_id = user_attrs["cn"][0].decode()
 
-            # If no user mail address can be obtained use cn for pseudo mail (only if env var is TRUE)
+            # If no user mail address can be obtained, use cn for pseudo mail (only if env var is TRUE)
             try:
                 user_mail = user_attrs["mail"][0].decode()
             except KeyError:
                 if get_ldap_pseudo_mail() == "TRUE":
                     user_mail = f"{uni_id}@pseudomail.uni-muenster.de"
                 else:
-                    raise UserSyncException(
+                    logger.error(
                         f'Error: No mail address could be obtained from LDAP for user with university id "{uni_id}"!'
                     )
-
+                    continue
             users.append(
                 {
                     "email": user_mail,
@@ -172,7 +163,7 @@ def parse_leader_mail_from_ldap(parsed_users: list, leader_acc: str) -> str:
             break
 
     if not leader_mail:
-        logger.error(
+        logger.critical(
             f"No leader mail address for ID {leader_acc} could be obtained from the LDAP server."
         )
 

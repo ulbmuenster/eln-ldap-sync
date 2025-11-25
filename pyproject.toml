@@ -1,0 +1,27 @@
+[project]
+name = "eln-ldap-sync"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-ldap>=3.4.3",
+    "requests",
+    "progress",
+    "python-dotenv",
+    "click",
+    "loguru",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-mock",
+    "python-ldap-faker",
+    "pytest-cov",
+    "requests_mock",
+    "hypothesis",
+    "isort",
+    "black",
+    "pytest-loguru",
+]

@@ -1,19 +1,15 @@
-# Copyright (C) 2024 University of Münster
+# Copyright (C) 2024 - 2025 University of Münster
 # elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 """This module is the entry point for the user synchronization script."""
 import os
+import sys
 
 import click
 import ldap
 from dotenv import load_dotenv
 
 from elabftw_usersync.elabftw import ElabFTW
-from elabftw_usersync.helper import (
-    UserSyncException,
-    init_elabftw,
-    init_ldap,
-    read_whitelist,
-)
+from elabftw_usersync.helper import init_elabftw, init_ldap, read_whitelist
 from elabftw_usersync.idm_ldap import LDAP
 from elabftw_usersync.logger_config import logger
 from elabftw_usersync.processing import (
@@ -30,9 +26,9 @@ def start_sync(whitelist):
     # read .env file
     load_dotenv()
     logger.info("Starting user synchronization...")
+    # Make sure the whitelist is set and readable
     if whitelist is not None:
         os.environ["WHITELIST_FILENAME"] = whitelist
-    # make sure the whitelist is set and readable
     group_dicts = read_whitelist()
     # --------------------------------------------------
     (
@@ -48,11 +44,13 @@ def start_sync(whitelist):
     try:
         ld = LDAP(LDAP_HOST, LDAP_DN, LDAP_PASSWORD)
     except ldap.SERVER_DOWN:
-        raise UserSyncException(
+        logger.critical(
             "Error connecting to LDAP: SERVER DOWN (check for a potential configuration issue)"
         )
+        sys.exit(1)
     except ldap.INVALID_CREDENTIALS:
-        raise UserSyncException("Error connecting to LDAP: INVALID CREDENTIALS")
+        logger.critical("Error connecting to LDAP: INVALID CREDENTIALS")
+        sys.exit(1)
     # --------------------------------------------------
     ELABFTW_HOST, ELABFTW_APIKEY = init_elabftw()
     logger.info(
@@ -60,19 +58,14 @@ def start_sync(whitelist):
     )
     elabftw = ElabFTW(ELABFTW_HOST, ELABFTW_APIKEY)
 
-    try:
-        elabftw.check_connection()
-        # check if connection to elabftw is possible
+    elabftw.check_connection()
 
-    except Exception as e:
-        raise UserSyncException(e.msg)
-    else:
-        # if it is, get user data
-        elabftw.all_users = elabftw.get_all_users()
-        elabftw.user_data_list = elabftw.create_users_dict()
+    elabftw.all_users = (
+        elabftw.get_all_users()
+    )  # Cache all user data to speed up processing later on
+    elabftw.user_data_list = elabftw.create_users_dict()
     # --------------------------------------------------
     # Next steps: For each group in the whitelist we need to get the ldap users and the leader mail address.
-
     for group in group_dicts:
         logger.info(f"Processing team {group['groupname']}")
         ldap_users, leader_mail = process_ldap(
@@ -89,6 +82,8 @@ def start_sync(whitelist):
 
         if process_elabftw(elabftw, ldap_users, team, leader_mail):
             process_removed_users(elabftw, team, ldap_users_uniid)
+
+    logger.success("Successfully finished user synchronization.")
 
 
 if __name__ == "__main__":

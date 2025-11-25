@@ -1,10 +1,9 @@
-# Copyright (C) 2024 University of Münster
+# Copyright (C) 2024 - 2025 University of Münster
 # elabftw-usersync is free software; you can redistribute it and/or modify it under the terms of the MIT License; see LICENSE file for more details.
 """This module contains the processing logic for the user synchronization script."""
 from progress.bar import Bar
 
 from elabftw_usersync.helper import (
-    UserSyncException,
     diff_users,
     parse_leader_mail_from_ldap,
     parse_users_from_ldap,
@@ -64,8 +63,8 @@ def process_elabftw(
     :return: None
     """
     if not leader_mail:
-        logger.error(
-            f"Skipping the team {team_name} because no leader mail adress could be obtained from LDAP."
+        logger.critical(
+            f"Skipping the team {team_name} because no leader mail address could be obtained from LDAP."
         )
         return False
 
@@ -74,8 +73,8 @@ def process_elabftw(
     team_id = elabftw.get_team_id(team_name)
 
     if not team_id:
-        logger.error(
-            f"Skipping the team {team_name} because it could not be found in this Instance of ElabFTW. Please make sure the team exists."
+        logger.critical(
+            f"Skipping the team {team_name} because it could not be found in this instance of ElabFTW. Please make sure the team exists."
         )
         return False
 
@@ -89,7 +88,7 @@ def process_elabftw(
             break
 
     if not team_leader:
-        logger.error(
+        logger.critical(
             f"Skipping the team {team_name} because the leader {leader_mail} could not be found in LDAP."
         )
         return False
@@ -97,15 +96,29 @@ def process_elabftw(
     # --------------------------------------------------
 
     # make sure that the team leader exists in elabFTW. Get the user_id.
-    team_leader_id = elabftw.get_user_id_or_create(
-        leader_mail,
-        team_leader["firstname"],
-        team_leader["lastname"],
-        team_leader["uni_id"],
-        team_id,
-    )[0]
+    team_leader_id, restored_from_archive, is_archived_in_team = (
+        elabftw.get_user_id_or_create(
+            leader_mail,
+            team_leader["firstname"],
+            team_leader["lastname"],
+            team_leader["uni_id"],
+            team_id,
+        )
+    )
+
+    # If team leader is archived in this specific team, unarchive them
+    if is_archived_in_team:
+        logger.info(
+            f"Team leader {leader_mail} is archived in team {team_name}. Unarchiving..."
+        )
+        elabftw.unarchive_user_in_team(team_leader_id, team_id)
+
     # make sure that the leader is in the team he/she is the leader of
     elabftw.add_user_to_team(team_leader_id, team_id)
+
+    # Restore the leader if they were added to the archive team before
+    if restored_from_archive:
+        elabftw.remove_user_from_archive_team(team_leader_id, team_leader["uni_id"])
     # remove the leader from parsed_ldap_users to avoid adding him/her again
     parsed_ldap_users = [
         user for user in parsed_ldap_users if user["email"] != leader_mail
@@ -113,51 +126,59 @@ def process_elabftw(
 
     # --------------------------------------------------
     # process all other users
-    with Bar("Processing users in elabFTW", max=len(parsed_ldap_users)) as bar:
+    with Bar("Processing users in ElabFTW", max=len(parsed_ldap_users)) as bar:
         for user in parsed_ldap_users:
-            user_id, unarchived = elabftw.get_user_id_or_create(
-                user["email"],
-                user["firstname"],
-                user["lastname"],
-                user["uni_id"],
-                team_id,
+            user_id, restored_from_archive, is_archived_in_team = (
+                elabftw.get_user_id_or_create(
+                    user["email"],
+                    user["firstname"],
+                    user["lastname"],
+                    user["uni_id"],
+                    team_id,
+                )
             )
-            # Add user to the team (will skip if user is already part of the team
 
-            try:
-                elabftw.add_user_to_team(user_id, team_id)
-            except UserSyncException as e:
-                logger.error(e.msg)
-            else:
-                # unarchive the user if he/she was archived before
-                if unarchived is True:
-                    elabftw.remove_user_from_team(user_id, "userarchiv")
+            # If user is archived in this specific team, unarchive them
+            if is_archived_in_team:
+                logger.info(
+                    f"User {user['email']} is archived in team {team_name}. Unarchiving..."
+                )
+                elabftw.unarchive_user_in_team(user_id, team_id)
+
+            # Add user to the team (will skip if the user is already part of the team)
+            elabftw.add_user_to_team(user_id, team_id)
+
+            # Restore the user if they were added to the archive team before
+            if restored_from_archive is True:
+                elabftw.remove_user_from_archive_team(user_id, user["uni_id"])
+
             bar.next()
 
     # --------------------------------------------------
     # setting the team leader
     logger.info(
-        f"Making sure that {team_leader['firstname']} {team_leader['lastname']} is the sole team leadder for team {team_name}..."
+        f"Making sure that {team_leader['firstname']} {team_leader['lastname']} is the sole team leader for team {team_name}..."
     )
-    try:
-        elabftw.ensure_single_teamowner(team_leader_id, team_id)
-    except UserSyncException as e:
-        logger.error(e.msg)
-    else:
-        logger.info("Teamowner set successfully.")
-        return True
+
+    elabftw.ensure_single_teamowner(team_leader_id, team_id)
+
+    logger.info("Team owner set successfully.")
+    return True
 
 
 def process_removed_users(elabftw, team, seen_uniids_from_ldap: list):
     """
-    Compare the users from LDAP-Group with the Users assigned to the ElabFTW-team and archive the users in ElabFTW which are not in LDAP anymore.
+    Compare the users from LDAP-Group with the Users assigned to the ElabFTW team and archive the users in ElabFTW teams
+    which are not in the corresponding LDAP groups anymore.
 
     :param elabftw_host:
     :param elabftw_apikey:
     :param seen_mail_address_from_ldap:
     :return: None
     """
-    logger.info("Pull current users for the team from ElabFTW to calculate changes...")
+    logger.info(
+        "Pull current users for the team from ElabFTW to calculate changes (ignoring already archived users)..."
+    )
     team_users = elabftw.get_users_for_team(elabftw.get_team_id(team))
     # team_users is a list of dicts
     team_users_orgids = [x["orgid"] for x in team_users]
@@ -165,8 +186,8 @@ def process_removed_users(elabftw, team, seen_uniids_from_ldap: list):
 
     if len(list_of_orgids_to_remove) > 0:
         logger.info(
-            f"Removing {len(list_of_orgids_to_remove)} users(s) from team {team}..."
+            f"Archiving {len(list_of_orgids_to_remove)} users(s) in team {team}..."
         )
-        elabftw.remove_users_from_team(list_of_orgids_to_remove, team)
+        elabftw.archive_users_in_team(list_of_orgids_to_remove, team)
     else:
         logger.info("No changes in users detected.")
